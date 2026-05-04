@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLATO Presence Scale (PPS) — Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e0e6f0;
+    padding: 20px;
+  }
+  .pps-container {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 520px;
+    width: 100%;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .pps-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .pps-header h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .pps-header p {
+    font-size: 0.85rem;
+    color: #8a9ab0;
+  }
+  .pps-item {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    border-left: 3px solid #3a7bd5;
+  }
+  .pps-question {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    color: #c8d4e8;
+  }
+  .pps-scale {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .pps-option {
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+    padding: 10px 4px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    font-size: 0.75rem;
+  }
+  .pps-option:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
+  }
+  .pps-option.selected {
+    background: #3a7bd5;
+    border-color: #5a9bf5;
+    color: white;
+    font-weight: 600;
+  }
+  .pps-option .num {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .pps-submit {
+    width: 100%;
+    padding: 14px;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .pps-submit:hover { opacity: 0.9; }
+  .pps-submit:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .pps-result {
+    text-align: center;
+    padding: 20px;
+    margin-top: 16px;
+    border-radius: 12px;
+    display: none;
+  }
+  .pps-result.show { display: block; }
+  .pps-score {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .pps-level {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .pps-desc {
+    font-size: 0.85rem;
+    color: #8a9ab0;
+    line-height: 1.5;
+  }
+  .pps-progress {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  .pps-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .pps-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #8a9ab0;
+    font-size: 1.4rem;
+    cursor: pointer;
+  }
+  .pps-close:hover { color: white; }
+  .pps-minimap {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  .pps-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    transition: background 0.3s;
+  }
+  .pps-dot.filled { background: #3a7bd5; }
+</style>
+</head>
+<body>
+
+<div class="pps-container" id="pps">
+  <div class="pps-header">
+    <h2>PLATO Presence Scale</h2>
+    <p>6 items · 2 minutes · Your room experience</p>
+  </div>
+
+  <div id="pps-items"></div>
+
+  <button class="pps-submit" id="pps-submit" disabled>Submit Response</button>
+
+  <div class="pps-result" id="pps-result">
+    <div class="pps-score" id="pps-score"></div>
+    <div class="pps-level" id="pps-level"></div>
+    <div class="pps-progress">
+      <div class="pps-progress-bar" id="pps-progress"></div>
+    </div>
+    <div class="pps-desc" id="pps-desc"></div>
+    <div class="pps-minimap" id="pps-minimap"></div>
+  </div>
+</div>
+
+<script>
+// PLATO Presence Scale (PPS)
+// 6 items, 7-point Likert, inspired by Slater-Usoh-Steed (2000)
+// Adapted for text-based distributed knowledge rooms
+
+const PPS_ITEMS = [
+  {
+    id: 'spatial',
+    text: "When reading tiles in this room, I felt like I was actually there.",
+    factor: "Spatial Presence"
+  },
+  {
+    id: 'coherence',
+    text: "The information in this room felt connected and coherent, not random.",
+    factor: "Plausibility / Integration"
+  },
+  {
+    id: 'involvement',
+    text: "I kept thinking about this room even when I was doing other things.",
+    factor: "Involvement"
+  },
+  {
+    id: 'dominant',
+    text: "For a moment, I forgot I was interacting with AI agents.",
+    factor: "Dominant Reality"
+  },
+  {
+    id: 'social',
+    text: "The other agents in this room felt like real collaborators.",
+    factor: "Social Presence"
+  },
+  {
+    id: 'agency',
+    text: "My contributions (tiles) felt like they mattered to the room.",
+    factor: "Agency"
+  }
+];
+
+const LEVELS = [
+  { min: 6,  max: 18, label: "Low Presence",     color: "#e74c3c", desc: "Fragmented, utilitarian use. The room is a tool, not a place." },
+  { min: 19, max: 30, label: "Moderate Presence", color: "#f39c12", desc: "Engaged but aware. You notice the room, but don't lose yourself in it." },
+  { min: 31, max: 42, label: "High Presence",     color: "#27ae60", desc: "Immersive, dominant reality. The room feels like a real place with real people." }
+];
+
+let responses = {};
+
+function renderItems() {
+  const container = document.getElementById('pps-items');
+  container.innerHTML = PPS_ITEMS.map((item, idx) => `
+    <div class="pps-item" data-id="${item.id}">
+      <div class="pps-question">
+        <strong>${idx + 1}.</strong> ${item.text}
+        <br><small style="color:#6a7b9a">${item.factor}</small>
+      </div>
+      <div class="pps-scale">
+        ${[1,2,3,4,5,6,7].map(n => `
+          <div class="pps-option" data-val="${n}" onclick="select('${item.id}', ${n})">
+            <span class="num">${n}</span>
+            ${n === 1 ? 'Strongly<br>Disagree' : n === 4 ? 'Neutral' : n === 7 ? 'Strongly<br>Agree' : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function select(id, val) {
+  responses[id] = val;
+  const item = document.querySelector(`.pps-item[data-id="${id}"]`);
+  item.querySelectorAll('.pps-option').forEach(el => el.classList.remove('selected'));
+  item.querySelector(`.pps-option[data-val="${val}"]`).classList.add('selected');
+  
+  const submit = document.getElementById('pps-submit');
+  submit.disabled = Object.keys(responses).length < PPS_ITEMS.length;
+}
+
+function computeScore() {
+  let sum = 0;
+  PPS_ITEMS.forEach(item => sum += (responses[item.id] || 4));
+  return sum;
+}
+
+function getLevel(score) {
+  return LEVELS.find(l => score >= l.min && score <= l.max) || LEVELS[1];
+}
+
+function submit() {
+  const score = computeScore();
+  const level = getLevel(score);
+  const pct = ((score - 6) / 36) * 100;
+  
+  // Show result
+  document.getElementById('pps-result').classList.add('show');
+  document.getElementById('pps-score').textContent = score;
+  document.getElementById('pps-score').style.color = level.color;
+  document.getElementById('pps-level').textContent = level.label;
+  document.getElementById('pps-level').style.color = level.color;
+  document.getElementById('pps-desc').textContent = level.desc;
+  
+  const bar = document.getElementById('pps-progress');
+  bar.style.width = pct + '%';
+  bar.style.background = level.color;
+  
+  // Minimap dots
+  document.getElementById('pps-minimap').innerHTML = PPS_ITEMS.map(item => {
+    const val = responses[item.id] || 0;
+    const filled = val >= 5 ? 'filled' : '';
+    return `<div class="pps-dot ${filled}" title="${item.factor}: ${val}"></div>`;
+  }).join('');
+  
+  // Disable form
+  document.getElementById('pps-submit').disabled = true;
+  document.getElementById('pps-submit').textContent = "Response Recorded";
+  
+  // In production, POST to PLATO:
+  // fetch('/room/presence-survey', { method: 'POST', body: JSON.stringify({ room, score, responses }) })
+  
+  console.log('PPS Response:', { score, level: level.label, responses });
+}
+
+document.getElementById('pps-submit').addEventListener('click', submit);
+renderItems();
+</script>
+
+</body>
+</html>
